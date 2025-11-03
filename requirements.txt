@@ -1,0 +1,45 @@
+# 人脸检测与识别项目依赖
+# 安装方法: pip install -r requirements.txt
+# ============ 核心依赖 ============
+
+# OpenCV - 图像处理和计算机视觉
+opencv-python>=4.8.0
+
+# NumPy - 数值计算
+numpy>=1.24.0
+
+# ============ YOLO人脸检测 ============
+
+# Ultralytics - YOLOv8框架
+ultralytics>=8.0.0
+
+# PyTorch - 深度学习框架 (ultralytics依赖)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# ============ 人脸识别 ============
+
+# dlib - 人脸特征提取和识别
+dlib>=19.24.0
+
+# ============ 其他工具 ============
+
+# Pillow - 图像处理 (用于中文标签显示)
+Pillow>=10.0.0
+
+# ============ 可选依赖 ============
+
+# matplotlib - 数据可视化 (可选)
+# matplotlib>=3.7.0
+
+# scikit-learn - 机器学习工具 (可选)
+# scikit-learn>=1.3.0
+
+# ============ 开发工具 ============
+
+# pytest - 单元测试 (开发时使用)
+# pytest>=7.4.0
+
+# black - 代码格式化 (开发时使用)
+# black>=23.0.0
+
