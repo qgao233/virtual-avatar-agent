@@ -43,5 +43,5 @@ Pillow>=10.0.0
 # black - 代码格式化 (开发时使用)
 # black>=23.0.0
 
-dashscope>=1.23.4
+dashscope>=1.24.8
 qwen-agent>=0.0.27

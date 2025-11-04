@@ -12,4 +12,4 @@ __pycache__/
 known_faces/
 test_faces/
 knowledge_vectors.json
-agents_config.py
+model_config.py

@@ -3,11 +3,14 @@ import dashscope
 from dashscope import Assistants, Messages, Runs, Threads
 from qwen_agent.agents import Assistant
 
-from . import agents_config
 from .agents_functions import function_mapper
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import model_config
 
-dashscope.api_key = agents_config.dashscope_api_key
-use_model = agents_config.use_model
+dashscope.api_key = model_config.dashscope_api_key
+use_model = model_config.qwen_model
 
 # 报销数据分析助手：对每一张报销单据或者行程单中的数据详情进行读取和抽取，准备后续使用，如果要对一张单据或者行程单进行数据抽取，则调用该agent；
 planner_agent=Assistants.create(

@@ -15,11 +15,11 @@ from http import HTTPStatus
 import numpy as np
 
 # 添加父目录到路径以便导入配置
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from agents_config import dashscope_api_key
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+import model_config
 
 # 设置 API Key
-dashscope.api_key = dashscope_api_key
+dashscope.api_key = model_config.dashscope_api_key
 
 
 def vectorize_text(text: str, model: str = "text-embedding-v4") -> list:
