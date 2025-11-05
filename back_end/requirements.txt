@@ -1,5 +1,26 @@
-# 人脸检测与识别项目依赖
+# Salotto Demo 后端项目依赖
 # 安装方法: pip install -r requirements.txt
+
+# ============ FastAPI Web 框架 ============
+
+# FastAPI - 现代高性能 Web 框架
+fastapi>=0.104.0
+
+# Uvicorn - ASGI 服务器
+uvicorn[standard]>=0.24.0
+
+# Pydantic Settings - 配置管理
+pydantic-settings>=2.0.0
+
+# Python-multipart - 文件上传支持
+python-multipart>=0.0.6
+
+# WebSockets - WebSocket 支持
+websockets>=12.0
+
+# aiofiles - 异步文件操作
+aiofiles>=23.0.0
+
 # ============ 核心依赖 ============
 
 # OpenCV - 图像处理和计算机视觉

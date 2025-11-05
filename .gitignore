@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -9,7 +10,47 @@ __pycache__/
 *.pywzz
 *.pyzzz
 *.pywzzz
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv
+
+# 环境变量
+.env
+.env.local
+
+# 上传文件
+uploads/
+*.pkl
+
+# 模型文件
+*.pt
+*.dat
+*.pth
+
+# 数据文件
 known_faces/
 test_faces/
 knowledge_vectors.json
 model_config.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
