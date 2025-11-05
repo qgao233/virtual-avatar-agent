@@ -32,16 +32,9 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     UPLOAD_DIR: str = "uploads"
     
-    # 模型路径配置
-    YOLO_MODEL_PATH: str = "cv/yolo/model/yolov8l-face.pt"
-    DLIB_FACE_RECOGNITION_MODEL: str = "cv/fr/model/dlib_face_recognition_resnet_model_v1.dat"
-    DLIB_SHAPE_PREDICTOR_MODEL: str = "cv/fr/model/shape_predictor_68_face_landmarks.dat"
-    FACE_VECTORS_PATH: str = "cv/fr/face_vectors.pkl"
-    KNOWN_FACES_DIR: str = "cv/fr/known_faces"
-    
-    # 知识库配置
-    KNOWLEDGE_VECTORS_PATH: str = "llm/multi_agent_fw/kb_data/knowledge_vectors.json"
-    KNOWLEDGE_PERMISSION_PATH: str = "llm/multi_agent_fw/kb_data/knowledge_permission.jsonl"
+    # CV 系统配置
+    # 识别间隔时间(毫秒)
+    RECOGNITION_GAP: float = 2000
     
     class Config:
         env_file = ".env"
@@ -57,10 +50,6 @@ def ensure_directories():
     """确保必要的目录存在"""
     directories = [
         settings.UPLOAD_DIR,
-        os.path.dirname(settings.YOLO_MODEL_PATH),
-        os.path.dirname(settings.FACE_VECTORS_PATH),
-        settings.KNOWN_FACES_DIR,
-        os.path.dirname(settings.KNOWLEDGE_VECTORS_PATH),
     ]
     
     for directory in directories:

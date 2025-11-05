@@ -8,6 +8,7 @@ import uvicorn
 
 from config import settings
 from routers import cv_router, llm_router, sr_router
+from cv.cv import get_cv_system, ensure_cv_system_initialized
 
 
 @asynccontextmanager
@@ -17,7 +18,25 @@ async def lifespan(app: FastAPI):
     print("🚀 应用启动中...")
     print(f"📝 环境: {settings.ENVIRONMENT}")
     print(f"🔗 API 文档: http://{settings.HOST}:{settings.PORT}/docs")
+    
+    # 初始化 CV 系统
+    print("\n" + "=" * 60)
+    print("初始化 CV 系统...")
+    print("=" * 60)
+    try:
+        cv_system = ensure_cv_system_initialized()
+        print("✓ CV 系统初始化成功")
+        status = cv_system.get_status()
+        print(f"✓ 已注册人脸: {status['registered_faces']} 个")
+        if status['registered_names']:
+            print(f"✓ 已注册人员: {', '.join(status['registered_names'])}")
+    except Exception as e:
+        print(f"✗ CV 系统初始化失败: {e}")
+        print("⚠️  CV 相关功能将不可用")
+    print("=" * 60 + "\n")
+    
     yield
+    
     # 关闭时执行
     print("👋 应用关闭中...")
 

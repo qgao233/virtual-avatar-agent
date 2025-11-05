@@ -1,6 +1,23 @@
 from multi_agent_fw.agents import get_agent_response, planner_agent, agent_mapper, summary_agent
 import ast
 
+def get_summary_response(query, agent_message=""):
+    """
+    调用summary_agent获取最终回复的公共函数
+    
+    Args:
+        query: 用户的问题
+        agent_message: Agent的回复信息，默认为空字符串
+    
+    Returns:
+        multi_agent_response: summary_agent的回复
+    """
+    prompt = f"请参考已知的信息：{agent_message}，回答用户的问题：{query}。"
+    multi_agent_response = get_agent_response(summary_agent, prompt)
+    print('*********************************      Multi-Agent回复为：     ****************************************\n')
+    print(f'{multi_agent_response}\n')
+    return multi_agent_response
+
 def get_multi_agent_response(query):
     # 获取Agent的运行顺序
     agent_order = get_agent_response(planner_agent, query)
@@ -10,6 +27,10 @@ def get_multi_agent_response(query):
         print("Planner Agent正在工作：")
         for i in range(len(order_stk)):
             print(f'第{i + 1}步调用：{order_stk[i]}')
+
+        # 如果order_stk为空数组，直接调用summary_agent作为托底
+        if len(order_stk) == 0:
+            return get_summary_response(query)
 
         # 随着多Agent的加入，需要将Agent的输出添加到用户问题中，作为参考信息
         cur_query = query
@@ -28,12 +49,7 @@ def get_multi_agent_response(query):
             Agent_Message += f"*{order_stk[i]}*的回复为：{response}\n\n"
             # 如果当前Agent为最后一个Agent，则将其输出作为Multi Agent的输出
             if i == len(order_stk) - 1:
-                prompt = f"请参考已知的信息：{Agent_Message}，回答用户的问题：{query}。"
-                multi_agent_response = get_agent_response(summary_agent, prompt)
-                print('*********************************      Multi-Agent回复为：     ****************************************\n')
-                print(f'{multi_agent_response}\n')
-
-                return multi_agent_response
+                return get_summary_response(query, Agent_Message)
             # 如果当前Agent不是最后一个Agent，则将上一个Agent的输出response添加到下一轮的query中，作为参考信息
             else:
                 # 在参考信息前后加上特殊标识符，可以防止大模型混淆参考信息与提问
