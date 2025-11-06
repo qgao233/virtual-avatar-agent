@@ -7,7 +7,12 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 
 router = APIRouter()
-
+# 设置之后的导入模块目录为上上两层的绝对目录下开始搜索
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from llm.multi_agent_fw.agents import summary_agent, get_agent_response
+from llm.assistant import get_multi_agent_response
 
 class ChatRequest(BaseModel):
     """聊天请求模型"""
@@ -49,14 +54,14 @@ async def chat(request: ChatRequest):
         AI 助手的回复
     """
     try:
-        # TODO: 集成 LLM 对话功能
-        # 这里需要导入并使用 llm/assistant.py 中的功能
-        
         from datetime import datetime
         
+        # 使用 summary_agent 进行简单对话
+        response = get_agent_response(summary_agent, request.message)
+        
         return ChatResponse(
-            response=f"收到消息: {request.message} (功能待集成)",
-            conversation_id=request.conversation_id or "new_conversation",
+            response=response,
+            conversation_id=request.conversation_id or f"chat_{datetime.now().timestamp()}",
             timestamp=datetime.now().isoformat()
         )
         
@@ -64,27 +69,31 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"对话失败: {str(e)}")
 
 
+class MultiAgentRequest(BaseModel):
+    """多智能体查询请求模型"""
+    query: str
+    user_id: Optional[str] = None
+
+
 @router.post("/multi-agent")
-async def multi_agent_query(query: str, user_id: Optional[str] = None):
+async def multi_agent_query(request: MultiAgentRequest):
     """
     多智能体查询接口
     
     参数:
-        query: 用户查询
-        user_id: 用户ID(用于权限控制)
+        request: 包含用户查询和用户ID的请求体
     
     返回:
         多智能体协作的查询结果
     """
     try:
-        # TODO: 集成多智能体系统
-        # 这里需要导入并使用 llm/multi_agent_fw/agents.py 中的功能
+        # 调用多智能体系统获取回复
+        result = get_multi_agent_response(request.query)
         
         return {
             "status": "success",
-            "query": query,
-            "result": "多智能体功能待集成",
-            "agents_used": []
+            "query": request.query,
+            "result": result
         }
         
     except Exception as e:

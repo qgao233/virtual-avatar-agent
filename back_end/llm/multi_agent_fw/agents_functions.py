@@ -6,21 +6,17 @@
 
 import numpy as np
 import json
-import os
-import sys
 from typing import List, Dict, Tuple
 import dashscope
 from http import HTTPStatus
 
-# 处理导入
-try:
-    from . import agents_config
-except ImportError:
-    # 如果相对导入失败，尝试直接导入（用于测试）
-    import agents_config
 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import model_config
 # 设置 API Key
-dashscope.api_key = agents_config.dashscope_api_key
+dashscope.api_key = model_config.dashscope_api_key
 
 
 # 全局知识库存储

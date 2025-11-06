@@ -77,6 +77,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import VideoWindow from './VideoWindow.vue'
 import { setIntervalAtLeast, type IntervalController } from '../utils'
 import { useVoiceRecognition } from '../hooks/useVoiceRecognition'
+import { API_BASE_URL, API_ENDPOINTS } from '../config'
 
 interface Props {
   /** 是否自动启动摄像头 */
@@ -119,8 +120,6 @@ const localFaces = ref<any[]>([])
 let durationInterval: number | null = null
 let recognitionController: IntervalController | null = null
 
-const API_BASE_URL = 'http://localhost:8000'
-
 // 语音识别相关 - 使用整合的 Hook
 const {
   isActive: voiceRecognitionActive,
@@ -133,7 +132,7 @@ const {
   start: startVoiceRecognition,
   stop: stopVoiceRecognition
 } = useVoiceRecognition({
-  asrUrl: 'ws://localhost:8000/api/sr/realtime',
+  asrUrl: API_ENDPOINTS.SR.REALTIME,
   sampleRate: 16000,
   bufferSize: 4096,
   autoReconnect: true,
@@ -324,7 +323,7 @@ const formatDuration = (seconds: number): string => {
  */
 const fetchRecognitionGap = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/cv/recognition-gap`)
+    const response = await fetch(API_ENDPOINTS.CV.RECOGNITION_GAP)
     const data = await response.json()
     recognitionGap.value = data.recognition_gap || 1000
     console.log('识别间隔:', recognitionGap.value, 'ms')
@@ -350,7 +349,7 @@ const recognizeFaces = async () => {
     formData.append('file', blob, 'frame.jpg')
     
     // 调用识别 API
-    const response = await fetch(`${API_BASE_URL}/api/cv/recognize-faces`, {
+    const response = await fetch(API_ENDPOINTS.CV.RECOGNIZE_FACES, {
       method: 'POST',
       body: formData
     })

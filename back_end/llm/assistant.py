@@ -1,5 +1,10 @@
-from multi_agent_fw.agents import get_agent_response, planner_agent, agent_mapper, summary_agent
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 import ast
+from llm.multi_agent_fw.agents import get_agent_response, planner_agent, agent_mapper, summary_agent
+
 
 def get_summary_response(query, agent_message=""):
     """

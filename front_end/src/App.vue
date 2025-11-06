@@ -40,6 +40,7 @@ import { ref } from 'vue'
 import GridLayout from './components/GridLayout.vue'
 import VideoDisplay from './components/VideoDisplay.vue'
 import ChatPanel from './components/ChatPanel.vue'
+import { API_ENDPOINTS } from './config'
 
 // 组件引用
 const videoDisplayRef = ref<InstanceType<typeof VideoDisplay> | null>(null)
@@ -64,25 +65,56 @@ const handleStreamError = (error: Error) => {
 /**
  * 处理发送消息
  */
-const handleSendMessage = (message: string) => {
+const handleSendMessage = async (message: string) => {
+  console.log('发送消息:', message)
+  
   // 标记为正在发送/系统回复中
   chatPanelRef.value?.setSending(true)
   
-  // TODO: 发送消息到后端 API
-  // 示例: 模拟收到回复
-  setTimeout(() => {
-    chatPanelRef.value?.receiveMessage('收到你的消息: ' + message)
+  try {
+    // 调用后端 multi-agent 接口
+    const response = await fetch(API_ENDPOINTS.LLM.MULTI_AGENT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: message,
+        user_id: 'user_001'
+      })
+    })
     
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log('Multi-Agent 回复:', data)
+    
+    // 显示 AI 回复
+    if (data.result) {
+      chatPanelRef.value?.receiveMessage(data.result, 'AI 助手')
+    } else {
+      chatPanelRef.value?.receiveMessage('抱歉，我没有理解您的问题。', 'AI 助手')
+    }
+    
+  } catch (error) {
+    console.error('发送消息失败:', error)
+    chatPanelRef.value?.receiveMessage(
+      '抱歉，消息发送失败，请稍后重试。',
+      '系统提示'
+    )
+  } finally {
     // 回复完成，允许用户继续发送
     chatPanelRef.value?.setSending(false)
-  }, 2000)
+  }
 }
 
 /**
  * 处理正在输入
  */
 const handleTyping = (isTyping: boolean) => {
-  console.log('正在输入:', isTyping)
+  // console.log('正在输入:', isTyping)
   // TODO: 通知对方正在输入
 }
 
