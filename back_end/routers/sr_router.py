@@ -193,8 +193,6 @@ def asr_worker_thread(
                 if buffer_size >= chunk_size:
                     combined_audio = b''.join(audio_buffer)
                     
-                    print(f"📤 发送音频块: {buffer_size} 字节")
-                    
                     # 发送音频到 ASR
                     asr.send_audio_chunk(combined_audio)
                     
