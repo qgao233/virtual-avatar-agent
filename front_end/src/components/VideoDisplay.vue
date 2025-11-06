@@ -33,7 +33,7 @@
     <div class="local-video-wrapper">
       <VideoWindow
         ref="localWindowRef"
-        :stream="localStream"
+        :stream="localVideoStream"
         :autoplay="true"
         :muted="true"
         :mirror="true"
@@ -73,9 +73,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import VideoWindow from './VideoWindow.vue'
 import { setIntervalAtLeast, type IntervalController } from '../utils'
+import { useVoiceRecognition } from '../hooks/useVoiceRecognition'
 
 interface Props {
   /** 是否自动启动摄像头 */
@@ -95,8 +96,9 @@ const emit = defineEmits<{
 const localWindowRef = ref<InstanceType<typeof VideoWindow> | null>(null)
 const remoteWindowRef = ref<InstanceType<typeof VideoWindow> | null>(null)
 
-// 媒体流
-const localStream = ref<MediaStream | null>(null)
+// 媒体流 - 分别管理视频和音频流
+const localVideoStream = ref<MediaStream | null>(null)  // 仅视频流，传给 VideoWindow
+const localAudioStream = ref<MediaStream | null>(null)  // 仅音频流，用于通话
 const remoteStream = ref<MediaStream | null>(null)
 
 // 控制状态
@@ -114,25 +116,58 @@ let recognitionController: IntervalController | null = null
 
 const API_BASE_URL = 'http://localhost:8000'
 
+// 语音识别相关 - 使用整合的 Hook
+const {
+  isActive: voiceRecognitionActive,
+  isRecording: voiceRecording,
+  asrConnected,
+  asrConnecting,
+  asrSessionId,
+  asrError,
+  recorderError,
+  start: startVoiceRecognition,
+  stop: stopVoiceRecognition
+} = useVoiceRecognition({
+  asrUrl: 'ws://localhost:8000/api/sr/realtime',
+  sampleRate: 16000,
+  bufferSize: 4096,
+  autoReconnect: true,
+  verbose: true
+})
+
 /**
- * 启动本地摄像头
+ * 启动本地摄像头和麦克风
  */
 const startCamera = async () => {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    // 1. 获取视频流（仅摄像头）
+    const videoStream = await navigator.mediaDevices.getUserMedia({
       video: {
         width: { ideal: 1280 },
         height: { ideal: 720 },
         facingMode: 'user'
       },
-      audio: true
+      audio: false  // 不包含音频
     })
 
-    localStream.value = stream
+    localVideoStream.value = videoStream
     isCameraOn.value = true
-    isMicOn.value = true
 
-    emit('streamReady', stream)
+    // 2. 获取音频流（仅麦克风）
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        video: false,  // 不包含视频
+        audio: true
+      })
+
+      localAudioStream.value = audioStream
+      isMicOn.value = true
+    } catch (audioError) {
+      console.warn('麦克风启动失败:', audioError)
+      // 即使麦克风失败，摄像头仍可使用
+    }
+
+    emit('streamReady', videoStream)
   } catch (error) {
     console.error('启动摄像头失败:', error)
     emit('streamError', error as Error)
@@ -140,12 +175,19 @@ const startCamera = async () => {
 }
 
 /**
- * 停止本地摄像头
+ * 停止本地摄像头和麦克风
  */
 const stopCamera = () => {
-  if (localStream.value) {
-    localStream.value.getTracks().forEach(track => track.stop())
-    localStream.value = null
+  // 停止视频流
+  if (localVideoStream.value) {
+    localVideoStream.value.getTracks().forEach(track => track.stop())
+    localVideoStream.value = null
+  }
+
+  // 停止音频流
+  if (localAudioStream.value) {
+    localAudioStream.value.getTracks().forEach(track => track.stop())
+    localAudioStream.value = null
   }
 
   isCameraOn.value = false
@@ -156,12 +198,12 @@ const stopCamera = () => {
  * 切换摄像头
  */
 const toggleCamera = () => {
-  if (!localStream.value) {
+  if (!localVideoStream.value) {
     startCamera()
     return
   }
 
-  const videoTrack = localStream.value.getVideoTracks()[0]
+  const videoTrack = localVideoStream.value.getVideoTracks()[0]
   if (videoTrack) {
     videoTrack.enabled = !videoTrack.enabled
     isCameraOn.value = videoTrack.enabled
@@ -172,14 +214,27 @@ const toggleCamera = () => {
  * 切换麦克风
  */
 const toggleMic = () => {
-  if (!localStream.value) return
+  if (!localAudioStream.value) return
 
-  const audioTrack = localStream.value.getAudioTracks()[0]
+  const audioTrack = localAudioStream.value.getAudioTracks()[0]
   if (audioTrack) {
     audioTrack.enabled = !audioTrack.enabled
     isMicOn.value = audioTrack.enabled
   }
 }
+
+/**
+ * 监听麦克风状态，自动启动/停止语音识别
+ */
+watch(isMicOn, (newValue) => {
+  if (newValue && localAudioStream.value) {
+    // 麦克风打开时启动语音识别
+    startVoiceRecognition(localAudioStream.value)
+  } else {
+    // 麦克风关闭时停止语音识别
+    stopVoiceRecognition()
+  }
+})
 
 /**
  * 设置远程视频流
@@ -343,6 +398,7 @@ onUnmounted(() => {
   stopCamera()
   stopDurationTimer()
   stopFaceRecognition()
+  stopVoiceRecognition()
 })
 
 // 暴露方法给父组件
@@ -352,11 +408,22 @@ defineExpose({
   toggleCamera,
   toggleMic,
   setRemoteStream,
-  getLocalStream: () => localStream.value,
+  getLocalVideoStream: () => localVideoStream.value,
+  getLocalAudioStream: () => localAudioStream.value,
   getRemoteStream: () => remoteStream.value,
   startFaceRecognition,
   stopFaceRecognition,
-  recognizeFaces
+  recognizeFaces,
+  // 语音识别相关
+  startVoiceRecognition,
+  stopVoiceRecognition,
+  voiceRecognitionActive,
+  voiceRecording,
+  asrConnected,
+  asrConnecting,
+  asrSessionId,
+  asrError,
+  recorderError
 })
 </script>
 
