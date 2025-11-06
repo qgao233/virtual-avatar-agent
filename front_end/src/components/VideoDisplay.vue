@@ -75,6 +75,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import VideoWindow from './VideoWindow.vue'
+import { setIntervalAtLeast, type IntervalController } from '../utils'
 
 interface Props {
   /** 是否自动启动摄像头 */
@@ -109,7 +110,7 @@ const recognitionGap = ref(1000) // 默认 1 秒
 const localFaces = ref<any[]>([])
 
 let durationInterval: number | null = null
-let recognitionInterval: number | null = null
+let recognitionController: IntervalController | null = null
 
 const API_BASE_URL = 'http://localhost:8000'
 
@@ -273,7 +274,7 @@ const recognizeFaces = async () => {
     // 更新人脸数据
     if (data.faces && data.faces.length > 0) {
       localFaces.value = data.faces
-      console.log(`✓ 检测到 ${data.faces.length} 个人脸，开始绘制...`)
+      // console.log(`✓ 检测到 ${data.faces.length} 个人脸，开始绘制...`)
       
       // 在 Canvas 上绘制人脸框
       localWindowRef.value.drawFaces(data.faces)
@@ -292,16 +293,17 @@ const recognizeFaces = async () => {
  * 启动人脸识别定时器
  */
 const startFaceRecognition = () => {
-  if (recognitionInterval) return
+  // 如果已经在运行，先停止
+  if (recognitionController?.isRunning()) {
+    console.log('人脸识别已在运行，跳过启动')
+    return
+  }
   
-  console.log('启动人脸识别,间隔:', recognitionGap.value, 'ms')
+  console.log('🚀 启动人脸识别,间隔:', recognitionGap.value, 'ms')
   
-  // 立即执行一次
-  recognizeFaces()
-  
-  // 设置定时器
-  recognitionInterval = window.setInterval(() => {
-    recognizeFaces()
+  // 使用优化的定时器，确保每次识别完成后至少等待指定间隔
+  recognitionController = setIntervalAtLeast(async () => {
+    await recognizeFaces()
   }, recognitionGap.value)
 }
 
@@ -309,10 +311,10 @@ const startFaceRecognition = () => {
  * 停止人脸识别定时器
  */
 const stopFaceRecognition = () => {
-  if (recognitionInterval) {
-    clearInterval(recognitionInterval)
-    recognitionInterval = null
-    console.log('停止人脸识别')
+  if (recognitionController) {
+    recognitionController.clear()
+    recognitionController = null
+    console.log('⏹️  停止人脸识别')
   }
   
   // 清空人脸数据和 Canvas

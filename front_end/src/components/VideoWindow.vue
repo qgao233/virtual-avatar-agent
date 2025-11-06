@@ -160,12 +160,12 @@ const drawFaces = (faces: FaceData[]) => {
   const scaleX = canvas.width / video.videoWidth
   const scaleY = canvas.height / video.videoHeight
   
-  console.log('绘制人脸框:', {
-    faces: faces.length,
-    videoSize: { width: video.videoWidth, height: video.videoHeight },
-    canvasSize: { width: canvas.width, height: canvas.height },
-    scale: { x: scaleX, y: scaleY }
-  })
+  // console.log('绘制人脸框:', {
+  //   faces: faces.length,
+  //   videoSize: { width: video.videoWidth, height: video.videoHeight },
+  //   canvasSize: { width: canvas.width, height: canvas.height },
+  //   scale: { x: scaleX, y: scaleY }
+  // })
   
   // 绘制每个人脸
   faces.forEach(face => {
