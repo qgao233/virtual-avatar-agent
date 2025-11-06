@@ -77,7 +77,8 @@ def asr_worker_thread(
     websocket: WebSocket,
     session_id: str,
     loop: asyncio.AbstractEventLoop,
-    stop_event: threading.Event
+    stop_event: threading.Event,
+    chunk_size: int = 3200
 ):
     """
     ASR 工作线程：从队列中取音频数据并发送到 RealtimeASR
@@ -89,6 +90,7 @@ def asr_worker_thread(
         session_id: 会话 ID
         loop: 主事件循环
         stop_event: 停止事件
+        chunk_size: 累积音频块大小（字节）
     """
     
     def send_message_sync(message: dict):
@@ -169,7 +171,9 @@ def asr_worker_thread(
         
         print(f"✓ ASR 已连接: {session_id}")
         
-        # 持续从队列中取音频数据并直接发送
+        # 持续从队列中取音频数据，累积到指定大小后发送
+        audio_buffer = []
+        
         while not stop_event.is_set():
             try:
                 # 从队列中获取音频数据（超时 0.1 秒）
@@ -179,8 +183,23 @@ def asr_worker_thread(
                     print(f"📭 收到结束信号")
                     break
                 
-                # 直接发送音频到 ASR
-                asr.send_audio_chunk(audio_chunk)
+                # 累积音频数据
+                audio_buffer.append(audio_chunk)
+                
+                # 计算累积的总大小
+                buffer_size = sum(len(chunk) for chunk in audio_buffer)
+                
+                # 累积到指定大小后发送
+                if buffer_size >= chunk_size:
+                    combined_audio = b''.join(audio_buffer)
+                    
+                    print(f"📤 发送音频块: {buffer_size} 字节")
+                    
+                    # 发送音频到 ASR
+                    asr.send_audio_chunk(combined_audio)
+                    
+                    # 清空缓冲区
+                    audio_buffer.clear()
                     
             except queue.Empty:
                 # 队列为空，继续等待
@@ -190,6 +209,15 @@ def asr_worker_thread(
                 import traceback
                 traceback.print_exc()
                 break
+        
+        # 发送剩余的音频（如果有）
+        if audio_buffer:
+            combined_audio = b''.join(audio_buffer)
+            buffer_size = len(combined_audio)
+            
+            print(f"📤 发送剩余音频: {buffer_size} 字节")
+            asr.send_audio_chunk(combined_audio)
+            audio_buffer.clear()
         
         print(f"✓ ASR 工作线程结束: {session_id}")
         
@@ -252,7 +280,8 @@ async def realtime_asr(websocket: WebSocket):
             websocket,
             session_id,
             loop,
-            stop_event
+            stop_event,
+            chunk_size=3200  # 每次发送 3200 字节
         )
         
         # 等待 ASR 连接（最多 3 秒）
