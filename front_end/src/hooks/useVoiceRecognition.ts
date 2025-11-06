@@ -17,6 +17,13 @@ export interface VoiceRecognitionConfig {
   autoReconnect?: boolean
   /** 是否打印详细日志 */
   verbose?: boolean
+  /** ASR 事件回调 */
+  onPartialText?: (text: string) => void
+  onFinalText?: (text: string) => void
+  onSpeechStart?: () => void
+  onSpeechStop?: () => void
+  onConnected?: (sessionId: string) => void
+  onError?: (error: string) => void
 }
 
 export function useVoiceRecognition(config: VoiceRecognitionConfig = {}) {
@@ -25,7 +32,13 @@ export function useVoiceRecognition(config: VoiceRecognitionConfig = {}) {
     sampleRate = 16000,
     bufferSize = 4096,
     autoReconnect = true,
-    verbose = true
+    verbose = true,
+    onPartialText,
+    onFinalText,
+    onSpeechStart,
+    onSpeechStop,
+    onConnected,
+    onError
   } = config
 
   // 状态
@@ -44,7 +57,13 @@ export function useVoiceRecognition(config: VoiceRecognitionConfig = {}) {
   } = useASR({
     url: asrUrl,
     autoReconnect,
-    verbose
+    verbose,
+    onPartialText,
+    onFinalText,
+    onSpeechStart,
+    onSpeechStop,
+    onConnected,
+    onError
   })
 
   // 使用音频录音 Hook

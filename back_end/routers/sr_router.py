@@ -138,6 +138,14 @@ def asr_worker_thread(
             "session_id": session_id
         })
     
+    def on_session_created(sid: str):
+        print(f"✓ ASR 会话已创建: {sid}")
+        send_message_sync({
+            "type": "connected",
+            "session_id": session_id,
+            "asr_session_id": sid
+        })
+    
     def on_error(error: Exception):
         print(f"❌ ASR 错误: {error}")
         send_message_sync({
@@ -155,6 +163,7 @@ def asr_worker_thread(
             on_final_text=on_final_text,
             on_speech_start=on_speech_start,
             on_speech_stop=on_speech_stop,
+            on_session_created=on_session_created,
             on_error=on_error
         )
         

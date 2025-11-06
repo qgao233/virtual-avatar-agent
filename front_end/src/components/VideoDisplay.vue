@@ -90,6 +90,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   streamReady: [stream: MediaStream]
   streamError: [error: Error]
+  // ASR 事件
+  asrPartialText: [text: string]
+  asrFinalText: [text: string]
+  asrSpeechStart: []
+  asrSpeechStop: []
 }>()
 
 // 视频窗口引用
@@ -132,7 +137,24 @@ const {
   sampleRate: 16000,
   bufferSize: 4096,
   autoReconnect: true,
-  verbose: true
+  verbose: true,
+  // ASR 事件回调
+  onPartialText: (text: string) => {
+    emit('asrPartialText', text)
+  },
+  onFinalText: (text: string) => {
+    emit('asrFinalText', text)
+  },
+  onSpeechStart: () => {
+    emit('asrSpeechStart')
+  },
+  onSpeechStop: () => {
+    emit('asrSpeechStop')
+  },
+  onConnected: (sessionId: string) => {
+  },
+  onError: (error: string) => {
+  }
 })
 
 /**

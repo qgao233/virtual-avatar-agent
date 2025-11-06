@@ -52,7 +52,10 @@
           ref="inputRef"
           v-model="inputMessage"
           class="message-input"
-          placeholder="输入消息..."
+          :class="{ 'voice-input': isVoiceInput }"
+          :placeholder="isVoiceInput ? '🎤 语音输入中...' : '输入消息...'"
+          :disabled="isVoiceInput"
+          :readonly="isVoiceInput"
           rows="1"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.shift.enter.exact="handleShiftEnter"
@@ -60,14 +63,18 @@
         ></textarea>
         <button
           class="send-btn"
-          :disabled="!inputMessage.trim()"
+          :disabled="!inputMessage.trim() || isSending || isVoiceInput"
           @click="sendMessage"
+          :title="isSending ? '系统回复中...' : '发送消息'"
         >
-          <span class="send-icon">📤</span>
+          <span class="send-icon">{{ isSending ? '⏳' : '📤' }}</span>
         </button>
       </div>
       <div class="input-hint">
-        按 Enter 发送，Shift + Enter 换行
+        <span v-if="isVoiceInput" class="voice-hint">🎤 正在语音输入...</span>
+        <span v-else-if="voiceInputStarted && !isVoiceInput" class="voice-hint">⏳ 等待识别完成...</span>
+        <span v-else-if="isSending" class="sending-hint">⏳ 系统回复中...</span>
+        <span v-else>按 Enter 发送，Shift + Enter 换行</span>
       </div>
     </div>
   </div>
@@ -111,6 +118,11 @@ const messagesContainerRef = ref<HTMLDivElement | null>(null)
 
 // 状态
 const isTyping = ref(false)
+const isVoiceInput = ref(false) // 语音输入中
+const isSending = ref(false) // 正在发送/系统回复中
+const savedInput = ref('') // 保存的用户输入
+const voiceInputStarted = ref(false) // 语音是否已经开始（用于判断是否应该回显）
+const pendingVoiceText = ref('') // 等待发送的语音文字
 
 /**
  * 发送消息
@@ -239,6 +251,104 @@ const setTyping = (typing: boolean) => {
   isTyping.value = typing
 }
 
+/**
+ * 开始语音输入
+ */
+const startVoiceInput = () => {
+  if (isVoiceInput.value) return
+  
+  // 保存当前输入的文字
+  savedInput.value = inputMessage.value
+  
+  // 清空输入区域
+  inputMessage.value = ''
+  
+  // 标记为语音输入中
+  isVoiceInput.value = true
+  voiceInputStarted.value = true
+  pendingVoiceText.value = ''
+  
+  console.log('🎤 开始语音输入，已保存文字:', savedInput.value)
+}
+
+/**
+ * 更新语音识别的文字（partial 或 final）
+ */
+const updateVoiceText = (text: string) => {
+  // 只有在 speech_start 之后才回显文字
+  if (!voiceInputStarted.value) {
+    console.log('⚠️  语音未开始，忽略文字:', text)
+    return
+  }
+  
+  // 如果语音输入已经结束（等待发送），则累积文字
+  if (!isVoiceInput.value) {
+    pendingVoiceText.value = text
+    return
+  }
+  
+  // 正常回显到输入区域
+  inputMessage.value = text
+  pendingVoiceText.value = text
+  
+  console.log('📝 回显语音文字:', text)
+  
+  // 自动调整输入框高度
+  if (inputRef.value) {
+    inputRef.value.style.height = 'auto'
+    inputRef.value.style.height = `${Math.min(inputRef.value.scrollHeight, 120)}px`
+  }
+}
+
+/**
+ * 结束语音输入并延迟发送
+ * 等待可能还在传输的 final_text
+ */
+const endVoiceInput = () => {
+  if (!isVoiceInput.value) return
+  
+  console.log('⏹️  检测到语音停止，准备发送...')
+  
+  // 标记语音输入已结束（但不立即发送）
+  isVoiceInput.value = false
+  
+  // 延迟 500ms 发送，等待可能的 final_text
+  setTimeout(() => {
+    // 使用最新的文字（可能在延迟期间更新）
+    const voiceText = (pendingVoiceText.value || inputMessage.value).trim()
+    
+    console.log('📤 延迟后发送语音文字:', voiceText)
+    
+    // 如果有识别到的文字，自动发送
+    if (voiceText) {
+      // 临时设置输入框内容为最终文字
+      inputMessage.value = voiceText
+      sendMessage()
+    }
+    
+    // 恢复之前保存的文字
+    inputMessage.value = savedInput.value
+    savedInput.value = ''
+    
+    // 重置语音输入状态
+    voiceInputStarted.value = false
+    pendingVoiceText.value = ''
+    
+    // 重置输入框高度
+    if (inputRef.value) {
+      inputRef.value.style.height = 'auto'
+      inputRef.value.style.height = `${Math.min(inputRef.value.scrollHeight, 120)}px`
+    }
+  }, 500) // 延迟 500ms
+}
+
+/**
+ * 设置发送状态（系统回复时禁用发送）
+ */
+const setSending = (sending: boolean) => {
+  isSending.value = sending
+}
+
 // 监听消息变化，自动滚动
 watch(
   () => messages.value.length,
@@ -251,7 +361,11 @@ watch(
 defineExpose({
   receiveMessage,
   clearMessages,
-  setTyping
+  setTyping,
+  startVoiceInput,
+  updateVoiceText,
+  endVoiceInput,
+  setSending
 })
 </script>
 
@@ -467,6 +581,17 @@ defineExpose({
   border-color: #3b82f6;
 }
 
+.message-input.voice-input {
+  background: #f0f9ff;
+  border-color: #3b82f6;
+  color: #1e40af;
+  cursor: not-allowed;
+}
+
+.message-input:disabled {
+  opacity: 0.7;
+}
+
 .send-btn {
   width: 40px;
   height: 40px;
@@ -501,6 +626,16 @@ defineExpose({
   font-size: 11px;
   color: #999;
   text-align: center;
+}
+
+.voice-hint {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.sending-hint {
+  color: #f59e0b;
+  font-weight: 500;
 }
 
 /* 动画 */

@@ -15,6 +15,13 @@ export interface ASRConfig {
   maxReconnectAttempts?: number
   /** 是否打印详细日志 */
   verbose?: boolean
+  /** 事件回调 */
+  onPartialText?: (text: string) => void
+  onFinalText?: (text: string) => void
+  onSpeechStart?: () => void
+  onSpeechStop?: () => void
+  onConnected?: (sessionId: string) => void
+  onError?: (error: string) => void
 }
 
 export interface ASRMessage {
@@ -31,7 +38,13 @@ export function useASR(config: ASRConfig = {}) {
     autoReconnect = true,
     reconnectInterval = 3000,
     maxReconnectAttempts = 5,
-    verbose = true
+    verbose = true,
+    onPartialText,
+    onFinalText,
+    onSpeechStart,
+    onSpeechStop,
+    onConnected,
+    onError
   } = config
 
   // 状态
@@ -181,27 +194,36 @@ export function useASR(config: ASRConfig = {}) {
           session_id: data.session_id,
           asr_session_id: data.asr_session_id
         })
+        onConnected?.(data.session_id || '')
         break
 
       case 'partial':
-        console.log('⏳ 部分识别结果:', data.text)
+        if (data.text) {
+          onPartialText?.(data.text)
+        }
         break
 
       case 'final':
         console.log('✓ 最终识别结果:', data.text)
+        if (data.text) {
+          onFinalText?.(data.text)
+        }
         break
 
       case 'speech_start':
         console.log('🎤 检测到语音开始')
+        onSpeechStart?.()
         break
 
       case 'speech_stop':
         console.log('⏹️  检测到语音停止')
+        onSpeechStop?.()
         break
 
       case 'error':
         console.error('❌ ASR 错误:', data.message)
         error.value = data.message || 'ASR 错误'
+        onError?.(data.message || 'ASR 错误')
         break
 
       default:

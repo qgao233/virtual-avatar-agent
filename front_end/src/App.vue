@@ -14,6 +14,10 @@
           :auto-start="true"
           @stream-ready="handleStreamReady"
           @stream-error="handleStreamError"
+          @asr-partial-text="handleAsrPartialText"
+          @asr-final-text="handleAsrFinalText"
+          @asr-speech-start="handleAsrSpeechStart"
+          @asr-speech-stop="handleAsrSpeechStop"
         />
       </template>
 
@@ -61,12 +65,17 @@ const handleStreamError = (error: Error) => {
  * 处理发送消息
  */
 const handleSendMessage = (message: string) => {
-  console.log('发送消息:', message)
+  // 标记为正在发送/系统回复中
+  chatPanelRef.value?.setSending(true)
+  
   // TODO: 发送消息到后端 API
   // 示例: 模拟收到回复
   setTimeout(() => {
     chatPanelRef.value?.receiveMessage('收到你的消息: ' + message)
-  }, 1000)
+    
+    // 回复完成，允许用户继续发送
+    chatPanelRef.value?.setSending(false)
+  }, 2000)
 }
 
 /**
@@ -75,6 +84,38 @@ const handleSendMessage = (message: string) => {
 const handleTyping = (isTyping: boolean) => {
   console.log('正在输入:', isTyping)
   // TODO: 通知对方正在输入
+}
+
+/**
+ * 处理 ASR 部分识别结果
+ */
+const handleAsrPartialText = (text: string) => {
+  // 更新聊天面板的输入区域
+  chatPanelRef.value?.updateVoiceText(text)
+}
+
+/**
+ * 处理 ASR 最终识别结果
+ */
+const handleAsrFinalText = (text: string) => {
+  // 更新聊天面板的输入区域
+  chatPanelRef.value?.updateVoiceText(text)
+}
+
+/**
+ * 处理语音开始
+ */
+const handleAsrSpeechStart = () => {
+  // 禁用输入区域，保存当前文字
+  chatPanelRef.value?.startVoiceInput()
+}
+
+/**
+ * 处理语音停止
+ */
+const handleAsrSpeechStop = () => {
+  // 自动发送识别的文字，恢复之前的文字
+  chatPanelRef.value?.endVoiceInput()
 }
 </script>
 
