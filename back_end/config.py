@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     
     # CV 系统配置
     # 识别间隔时间(毫秒)
-    RECOGNITION_GAP: float = 60000
+    RECOGNITION_GAP: float = 2000
     
     class Config:
         env_file = ".env"

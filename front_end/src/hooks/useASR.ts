@@ -57,6 +57,7 @@ export function useASR(config: ASRConfig = {}) {
   let ws: WebSocket | null = null
   let reconnectAttempts = 0
   let reconnectTimer: number | null = null
+  let isManualDisconnect = false  // 标记是否为主动断开
 
   /**
    * 建立 WebSocket 连接
@@ -69,6 +70,7 @@ export function useASR(config: ASRConfig = {}) {
 
     isConnecting.value = true
     error.value = null
+    isManualDisconnect = false  // 重置主动断开标志
 
     if (verbose) console.log('🔌 正在连接 ASR WebSocket...', url)
 
@@ -109,12 +111,13 @@ export function useASR(config: ASRConfig = {}) {
         if (verbose) {
           console.log('✗ ASR WebSocket 已断开', {
             code: event.code,
-            reason: event.reason
+            reason: event.reason,
+            isManual: isManualDisconnect
           })
         }
 
-        // 自动重连
-        if (autoReconnect && reconnectAttempts < maxReconnectAttempts) {
+        // 只在非主动断开且启用自动重连时才尝试重连
+        if (!isManualDisconnect && autoReconnect && reconnectAttempts < maxReconnectAttempts) {
           reconnectAttempts++
           if (verbose) {
             console.log(`🔄 尝试重连 ASR (${reconnectAttempts}/${maxReconnectAttempts})...`)
@@ -122,6 +125,8 @@ export function useASR(config: ASRConfig = {}) {
           reconnectTimer = window.setTimeout(() => {
             connect()
           }, reconnectInterval)
+        } else if (isManualDisconnect) {
+          if (verbose) console.log('✓ 主动断开连接，不进行重连')
         } else if (reconnectAttempts >= maxReconnectAttempts) {
           error.value = '达到最大重连次数'
           if (verbose) console.log('❌ 达到最大重连次数，停止重连')
@@ -138,13 +143,16 @@ export function useASR(config: ASRConfig = {}) {
    * 断开连接
    */
   const disconnect = () => {
+    // 标记为主动断开，防止自动重连
+    isManualDisconnect = true
+    
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
     }
 
     if (ws) {
-      if (verbose) console.log('🔌 正在断开 ASR WebSocket...')
+      if (verbose) console.log('🔌 正在主动断开 ASR WebSocket...')
       
       // 发送停止命令
       if (ws.readyState === WebSocket.OPEN) {

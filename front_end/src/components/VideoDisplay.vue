@@ -246,6 +246,21 @@ const toggleMic = () => {
 }
 
 /**
+ * 监听摄像头状态，自动启动/停止人脸识别
+ */
+watch(isCameraOn, (newValue) => {
+  if (newValue) {
+    // 摄像头打开时，等待视频流准备好后启动人脸识别
+    setTimeout(() => {
+      startFaceRecognition()
+    }, 500)
+  } else {
+    // 摄像头关闭时立即停止人脸识别
+    stopFaceRecognition()
+  }
+})
+
+/**
  * 监听麦克风状态，自动启动/停止语音识别
  */
 watch(isMicOn, (newValue) => {
@@ -405,14 +420,9 @@ onMounted(async () => {
   // 获取识别间隔
   await fetchRecognitionGap()
   
-  // 启动摄像头
+  // 启动摄像头（人脸识别会由 watch(isCameraOn) 自动启动）
   if (props.autoStart) {
     await startCamera()
-    
-    // 等待视频流准备好后启动人脸识别
-    setTimeout(() => {
-      startFaceRecognition()
-    }, 1000)
   }
 })
 
